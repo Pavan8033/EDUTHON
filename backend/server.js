@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const authRoutes = require('./src/routes/authRoutes');
 const issueRoutes = require('./src/routes/issueRoutes');
 const analyticsRoutes = require('./src/routes/analyticsRoutes');
+const categoryRoutes = require('./src/routes/categoryRoutes');
 
 dotenv.config();
 

@@ -17,25 +17,40 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     }, []);
 
+    const sendOTP = async (phone) => {
+        try {
+            const { data } = await axios.post('/api/auth/send-otp', { phone });
+            return { success: true, message: data.message };
+        } catch (error) {
+            return { success: false, message: error.response?.data?.message || 'Failed to send OTP' };
+        }
+    };
+
+    const verifyOTP = async (phone, code) => {
+        try {
+            const { data } = await axios.post('/api/auth/verify-otp', { phone, code });
+            return { success: true, message: data.message };
+        } catch (error) {
+            return { success: false, message: error.response?.data?.message || 'Verification failed' };
+        }
+    };
+
     const login = async (email, password) => {
         try {
             const { data } = await axios.post('/api/auth/login', { email, password });
             setUser(data);
             localStorage.setItem('userInfo', JSON.stringify(data));
-            // Setup axios interceptor for this token
-            axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
             return { success: true };
         } catch (error) {
             return { success: false, message: error.response?.data?.message || 'Login failed' };
         }
     };
 
-    const register = async (name, email, password, role = 'citizen') => {
+    const register = async (name, email, phone, password, role = 'citizen') => {
         try {
-            const { data } = await axios.post('/api/auth/register', { name, email, password, role });
+            const { data } = await axios.post('/api/auth/register', { name, email, phone, password, role });
             setUser(data);
             localStorage.setItem('userInfo', JSON.stringify(data));
-            axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
             return { success: true };
         } catch (error) {
             return { success: false, message: error.response?.data?.message || 'Registration failed' };
@@ -45,11 +60,10 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setUser(null);
         localStorage.removeItem('userInfo');
-        delete axios.defaults.headers.common['Authorization'];
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, register, logout, loading, sendOTP, verifyOTP }}>
             {!loading && children}
         </AuthContext.Provider>
     );

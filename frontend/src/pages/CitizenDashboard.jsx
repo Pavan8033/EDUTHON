@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import axios from '../utils/api';
 import io from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
@@ -6,10 +6,9 @@ import {
   MapPin, PlusCircle, CheckCircle, Clock, 
   Search, UploadCloud, X, LayoutDashboard, 
   Zap, AlertCircle, Camera, ChevronRight,
-  TrendingUp, BarChart3, Activity
+  TrendingUp, BarChart3, Activity, GpsFixed, Loader2
 } from 'lucide-react';
 import { PieChart, Cell, ResponsiveContainer, Pie } from 'recharts';
-import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as tf from '@tensorflow/tfjs';
 import * as mobilenet from '@tensorflow-models/mobilenet';
@@ -27,6 +26,12 @@ const CitizenDashboard = () => {
   const [categories, setCategories] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiPrediction, setAiPrediction] = useState('');
+  
+  // Camera & GPS State
+  const videoRef = useRef(null);
+  const [stream, setStream] = useState(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
   useEffect(() => {
     fetchIssues();
@@ -119,21 +124,65 @@ const CitizenDashboard = () => {
       }
   };
 
-  const onDrop = useCallback(acceptedFiles => {
-     if (acceptedFiles && acceptedFiles[0]) {
-        const file = acceptedFiles[0];
-        setImage(file);
-        const url = URL.createObjectURL(file);
-        setPreviewUrl(url);
-        analyzeImage(url);
-     }
-  }, []);
-  
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
-      onDrop, 
-      accept: {'image/*': []},
-      maxFiles: 1 
-  });
+  const detectLocation = () => {
+    setIsDetectingLocation(true);
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      setIsDetectingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setFormData(prev => ({ ...prev, lat: latitude, lng: longitude, address: `GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}` }));
+        setIsDetectingLocation(false);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        alert("Unable to retrieve your location");
+        setIsDetectingLocation(false);
+      }
+    );
+  };
+
+  const startCamera = async () => {
+    setIsCapturing(true);
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      setStream(mediaStream);
+      if (videoRef.current) videoRef.current.srcObject = mediaStream;
+    } catch (err) {
+      console.error("Camera access failed", err);
+      alert("Camera access denied. Please enable camera permissions.");
+      setIsCapturing(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setIsCapturing(false);
+  };
+
+  const capturePhoto = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoRef.current, 0, 0);
+    
+    canvas.toBlob((blob) => {
+      const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+      setImage(file);
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      stopCamera();
+      analyzeImage(url);
+    }, 'image/jpeg');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -226,39 +275,68 @@ const CitizenDashboard = () => {
                             </div>
                          </div>
 
-                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 ml-1">Address / GPS Reference</label>
-                            <div className="relative">
-                               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                               <input required className="input-field pl-12" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="Detecting location..." />
-                            </div>
-                         </div>
+                          <div className="space-y-2">
+                             <div className="flex justify-between items-center">
+                                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 ml-1">Address / GPS Reference</label>
+                                <button 
+                                  type="button" onClick={detectLocation} disabled={isDetectingLocation}
+                                  className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary hove:text-primary-400 transition-colors flex items-center gap-1"
+                                >
+                                   {isDetectingLocation ? <Loader2 size={12} className="animate-spin" /> : <MapPin size={12} />}
+                                   Detect My Location
+                                </button>
+                             </div>
+                             <div className="relative">
+                                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                                <input required className="input-field pl-12" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="Detecting location..." />
+                             </div>
+                             {formData.lat && formData.lng && (
+                                <div className="mt-4 rounded-xl overflow-hidden border border-white/10 h-[150px] relative group">
+                                   <iframe 
+                                     width="100%" height="100%" frameBorder="0" style={{ border: 0 }}
+                                     src={`https://www.google.com/maps/embed/v1/place?key=REPLACE_ME&q=${formData.lat},${formData.lng}`} 
+                                     allowFullScreen
+                                   ></iframe>
+                                   <div className="absolute inset-0 pointer-events-none border-2 border-primary/20 rounded-xl group-hover:border-primary/40 transition-colors"></div>
+                                </div>
+                             )}
+                          </div>
                       </div>
 
-                      <div 
-                         {...getRootProps()} 
-                         className={`flex-1 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-10 transition-all cursor-pointer outline-none min-h-[300px] ${
-                           isDragActive ? 'border-primary bg-primary/5 active:scale-[0.99]' : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20'
-                         }`}
-                      >
-                         <input {...getInputProps()} />
-                         {previewUrl ? (
-                            <div className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl">
-                               <img src={previewUrl} className="w-full h-full object-cover" />
-                               <button type="button" onClick={(e) => {e.stopPropagation(); setPreviewUrl(null); setImage(null);}} className="absolute top-4 right-4 p-2 bg-red-500 text-white rounded-xl shadow-lg hover:bg-red-600 transition-colors">
-                                  <X size={20} />
-                                </button>
-                            </div>
-                         ) : (
-                            <>
-                               <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center text-slate-500 mb-6 border border-white/5">
-                                  <UploadCloud size={32} />
-                               </div>
-                               <p className="text-lg font-bold text-white mb-2">Drop evidence here</p>
-                               <p className="text-slate-500 font-medium text-sm">PNG, JPG or HEIC up to 10MB</p>
-                            </>
-                         )}
-                      </div>
+                         <div className="space-y-2">
+                             <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 ml-1">Live Evidence Capture (Required)</label>
+                             <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-white/[0.02] border border-white/10 group">
+                                {previewUrl ? (
+                                   <div className="relative w-full h-full">
+                                      <img src={previewUrl} className="w-full h-full object-cover" />
+                                      <button type="button" onClick={() => {setPreviewUrl(null); setImage(null);}} className="absolute top-4 right-4 p-2 bg-red-500 text-white rounded-xl shadow-lg hover:bg-red-600 transition-colors">
+                                         <X size={20} />
+                                       </button>
+                                   </div>
+                                ) : isCapturing ? (
+                                   <div className="relative w-full h-full">
+                                      <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-4">
+                                         <button type="button" onClick={capturePhoto} className="px-6 py-3 bg-primary rounded-xl font-bold text-white shadow-glow flex items-center gap-2">
+                                            <Camera size={20}/> Capture Photo
+                                         </button>
+                                         <button type="button" onClick={stopCamera} className="px-6 py-3 bg-white/10 rounded-xl font-bold text-white border border-white/20">
+                                            Cancel
+                                         </button>
+                                      </div>
+                                   </div>
+                                ) : (
+                                   <div className="w-full h-full flex flex-col items-center justify-center p-10">
+                                      <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary mb-6 border border-primary/20">
+                                         <Camera size={32} />
+                                      </div>
+                                      <p className="text-lg font-bold text-white mb-2">Live Camera Access</p>
+                                      <p className="text-slate-500 font-medium text-sm text-center mb-8 max-w-[200px]">Secure reports require real-time photographic proof.</p>
+                                      <button type="button" onClick={startCamera} className="btn-primary px-8 py-3">Open Camera</button>
+                                   </div>
+                                )}
+                             </div>
+                         </div>
                    </div>
 
                    <div className="space-y-2 mt-4">

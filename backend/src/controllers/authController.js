@@ -32,7 +32,11 @@ exports.sendOTP = async (req, res) => {
             { upsert: true, new: true }
         );
 
-        res.json({ success: true, message: 'OTP sent successfully (Check server logs)' });
+        res.json({ 
+            success: true, 
+            message: 'OTP sent successfully (Demo Mode: OTP is included in response)', 
+            otp: code 
+        });
     } catch (error) {
         res.status(500).json({ message: 'Error sending OTP', error: error.message });
     }

@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
     const sendOTP = async (phone) => {
         try {
             const { data } = await axios.post('/api/auth/send-otp', { phone });
-            return { success: true, message: data.message };
+            return { success: true, message: data.message, otp: data.otp };
         } catch (error) {
             return { success: false, message: error.response?.data?.message || 'Failed to send OTP' };
         }

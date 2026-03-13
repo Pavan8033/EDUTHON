@@ -26,6 +26,7 @@ const CitizenDashboard = () => {
   const [categories, setCategories] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiPrediction, setAiPrediction] = useState('');
+  const [aiDetectedLabel, setAiDetectedLabel] = useState('');
   
   // Camera & GPS State
   const videoRef = useRef(null);
@@ -73,53 +74,57 @@ const CitizenDashboard = () => {
     }
   };
 
+  const mapPredictionToCategory = (predictions) => {
+    const labels = predictions.map(p => p.className.toLowerCase()).join(' ');
+    
+    // Pothole
+    if (labels.includes('hole') || labels.includes('manhole') || labels.includes('asphalt') || labels.includes('pavement') || labels.includes('crater')) {
+      return { label: predictions[0].className, category: 'Pothole' };
+    }
+    // Garbage
+    if (labels.includes('trash') || labels.includes('garbage') || labels.includes('bin') || labels.includes('waste') || labels.includes('plastic') || labels.includes('bag')) {
+      return { label: predictions[0].className, category: 'Garbage' };
+    }
+    // Broken Streetlight
+    if (labels.includes('lamp') || labels.includes('light') || labels.includes('pole') || labels.includes('bulb')) {
+      return { label: predictions[0].className, category: 'Broken Streetlight' };
+    }
+    // Water Leakage
+    if (labels.includes('water') || labels.includes('leak') || labels.includes('pipe') || labels.includes('flood') || labels.includes('puddle')) {
+      return { label: predictions[0].className, category: 'Water Leakage' };
+    }
+    
+    return { label: predictions[0].className, category: 'Road Damage' };
+  };
+
   const analyzeImage = async (url) => {
       setIsAnalyzing(true);
-      setAiPrediction('Initializing AI Model...');
+      setAiPrediction('Initializing System...');
+      setAiDetectedLabel('');
       try {
           await tf.ready();
-          setAiPrediction('Analyzing Image...');
+          setAiPrediction('Processing Matrix...');
           const model = await mobilenet.load();
           const img = new Image();
           img.src = url;
           img.onload = async () => {
               const predictions = await model.classify(img);
-              let detectedCategory = '';
-              let dbCategory = '';
-              const keywords = predictions.map(p => p.className.toLowerCase()).join(' ');
+              const { label, category } = mapPredictionToCategory(predictions);
               
-              if (keywords.includes('hole') || keywords.includes('street') || keywords.includes('circle') || keywords.includes('manhole')) {
-                  detectedCategory = 'Pothole Detected';
-                  dbCategory = '1';
-              } else if (keywords.includes('trash') || keywords.includes('ashcan') || keywords.includes('garbage') || keywords.includes('waste')) {
-                  detectedCategory = 'Garbage Pile Detected';
-                  dbCategory = '2';
-              } else if (keywords.includes('light') || keywords.includes('lamp') || keywords.includes('pole')) {
-                  detectedCategory = 'Broken Streetlight Detected';
-                  dbCategory = '3';
-              } else if (keywords.includes('water') || keywords.includes('pipe') || keywords.includes('fountain') || keywords.includes('plumbing')) {
-                  detectedCategory = 'Water Leak/Pipe Detected';
-                  dbCategory = '4';
-              } else {
-                  detectedCategory = `Objects: ${predictions[0].className}`;
+              setAiDetectedLabel(label);
+              setAiPrediction(category);
+              
+              // Match with DB Category ID
+              const matchedCat = categories.find(c => c.name.toLowerCase() === category.toLowerCase());
+              if (matchedCat) {
+                setFormData(prev => ({ ...prev, category: matchedCat._id }));
               }
-
-              setAiPrediction(detectedCategory);
               
-              // Find the corresponding category object from state to get the real _id
-              const matchedCat = categories.find(c => 
-                c.name.toLowerCase().includes(detectedCategory.split(' ')[0].toLowerCase())
-              );
-
-              setFormData(prev => ({ 
-                ...prev, 
-                category: matchedCat ? matchedCat._id : prev.category 
-              }));
               setIsAnalyzing(false);
           };
       } catch (err) {
           console.error("AI Analysis failed", err);
-          setAiPrediction('AI Analysis Failed');
+          setAiPrediction('Analysis Failed');
           setIsAnalyzing(false);
       }
   };
@@ -341,13 +346,28 @@ const CitizenDashboard = () => {
 
                    <div className="space-y-2 mt-4">
                       <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 ml-1">AI Smart Detection</label>
-                      <div className="input-field bg-primary/5 border border-primary/20 text-primary-400 font-mono text-sm flex items-center gap-3">
-                         {isAnalyzing ? (
-                             <><div className="w-4 h-4 rounded-full border-2 border-primary/20 border-t-primary animate-spin"></div> {aiPrediction}</>
-                         ) : (
-                             <><Zap size={16}/> {aiPrediction || 'Awaiting image upload for analysis...'}</>
-                         )}
-                      </div>
+                       <div className="input-field bg-primary/5 border border-primary/20 text-primary-400 font-mono text-xs flex flex-col justify-center gap-1.5 min-h-[60px] py-3">
+                          {isAnalyzing ? (
+                              <div className="flex items-center gap-3">
+                                 <div className="w-4 h-4 rounded-full border-2 border-primary/20 border-t-primary animate-spin"></div> 
+                                 <span className="font-bold uppercase tracking-widest">{aiPrediction}</span>
+                              </div>
+                          ) : aiPrediction ? (
+                              <div className="space-y-1">
+                                 <div className="flex items-center gap-2 text-white font-bold tracking-tight">
+                                    <Zap size={14} className="text-primary"/> 
+                                    Mapped Category: <span className="text-primary-400">{aiPrediction}</span>
+                                 </div>
+                                 <div className="text-[9px] text-slate-500 uppercase font-black tracking-widest pl-5">
+                                    AI Detected: "{aiDetectedLabel}"
+                                 </div>
+                              </div>
+                          ) : (
+                              <div className="flex items-center gap-2 opacity-50">
+                                 <Zap size={14}/> Awaiting evidence for analysis...
+                              </div>
+                          )}
+                       </div>
                    </div>
 
                    <div className="space-y-2">

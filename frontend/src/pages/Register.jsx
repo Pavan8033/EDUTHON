@@ -10,6 +10,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
+  const [receivedOtp, setReceivedOtp] = useState(''); // Demo mode
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +26,7 @@ const Register = () => {
     // In a real app, we'd check if email/phone exists first
     const result = await sendOTP(phone);
     if (result.success) {
+      if (result.otp) setReceivedOtp(result.otp);
       setStep(2);
     } else {
       setError(result.message);
@@ -140,9 +142,15 @@ const Register = () => {
                >
                   <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-center gap-4 mb-6">
                      <div className="p-3 bg-primary/20 rounded-lg text-primary"><Smartphone size={24}/></div>
-                     <div>
+                     <div className="flex-1">
                         <p className="text-sm font-bold text-white">Verification Sent</p>
                         <p className="text-xs text-slate-400">Check server console logs for code to {phone}</p>
+                        {receivedOtp && (
+                          <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                            <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Demo Mode OTP</p>
+                            <p className="text-lg font-black text-white">{receivedOtp}</p>
+                          </div>
+                        )}
                      </div>
                   </div>
 

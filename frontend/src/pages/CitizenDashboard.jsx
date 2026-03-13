@@ -38,7 +38,7 @@ const CitizenDashboard = () => {
     ]);
 
     // Setup WebSocket connection
-    const socket = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000');
+    const socket = io(import.meta.env.VITE_API_BASE_URL || 'https://cityfix-backend.onrender.com');
     
     socket.on('issueCreated', (newIssue) => {
       setIssues(prevIssues => [newIssue, ...prevIssues]);
@@ -322,10 +322,10 @@ const CitizenDashboard = () => {
                        <tr key={issue._id} className="hover:bg-white/[0.02] transition-colors group">
                           <td className="px-8 py-5">
                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex-shrink-0">
-                                   {issue.imageUrl ? (
-                                     <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${issue.imageUrl}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                                   ) : (
+                                 <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex-shrink-0">
+                                    {issue.imageUrl ? (
+                                      <img src={`${import.meta.env.VITE_API_BASE_URL || 'https://cityfix-backend.onrender.com'}${issue.imageUrl}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                    ) : (
                                      <div className="w-full h-full flex items-center justify-center text-slate-700 italic text-[10px]">RAW</div>
                                    )}
                                 </div>

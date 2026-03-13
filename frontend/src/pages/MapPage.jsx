@@ -193,7 +193,7 @@ const MapPage = () => {
 
                   {selectedIssue.imageUrl && (
                      <div className="rounded-2xl overflow-hidden border border-white/5 shadow-xl aspect-video bg-black/40">
-                        <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${selectedIssue.imageUrl}`} className="w-full h-full object-cover" alt="Issue Evidence" />
+                        <img src={`${import.meta.env.VITE_API_BASE_URL || 'https://cityfix-backend.onrender.com'}${selectedIssue.imageUrl}`} className="w-full h-full object-cover" alt="Issue Evidence" />
                      </div>
                   )}
 

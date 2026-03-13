@@ -97,7 +97,7 @@ const MaintenanceDashboard = () => {
                     {/* Media Node */}
                     <div className="w-full lg:w-[260px] relative bg-black/40 border-b lg:border-b-0 lg:border-r border-white/5">
                        {issue.imageUrl ? (
-                          <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${issue.imageUrl}`} className="w-full h-64 lg:h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          <img src={`${import.meta.env.VITE_API_BASE_URL || 'https://cityfix-backend.onrender.com'}${issue.imageUrl}`} className="w-full h-64 lg:h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                        ) : (
                           <div className="w-full h-64 lg:h-full flex flex-col items-center justify-center text-slate-700 font-black text-xs space-y-3">
                              <Activity size={40} className="text-slate-800" />

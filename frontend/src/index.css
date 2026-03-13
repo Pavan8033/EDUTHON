@@ -1,0 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#0F172A] text-slate-200 font-sans antialiased;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-[#111827]/80 backdrop-blur-xl border border-white/10 rounded-2xl;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+  }
+  
+  .glass-panel {
+    @apply bg-[#111827]/50 backdrop-blur-md border border-white/5 rounded-2xl;
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .nav-glass {
+    @apply bg-[#0F172A]/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-50;
+  }
+
+  .btn-primary {
+    @apply bg-[#2563EB] hover:bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 active:scale-[0.98];
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.15);
+  }
+
+  .btn-secondary {
+    @apply bg-white/5 hover:bg-white/10 text-white border border-white/10 px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 active:scale-[0.98];
+  }
+
+  .input-field {
+    @apply bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none w-full transition-all;
+  }
+  
+  .input-field:focus {
+    @apply border-blue-500/50 ring-2 ring-blue-500/20;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200 font-medium;
+  }
+
+  .sidebar-link-active {
+    @apply bg-blue-500/10 text-blue-500 border border-blue-500/20;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0F172A;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

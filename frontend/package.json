@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.0.0",
+    "@tensorflow-models/mobilenet": "^2.1.1",
+    "@tensorflow/tfjs": "^4.22.0",
     "autoprefixer": "^10.4.17",
     "axios": "^1.6.7",
     "class-variance-authority": "^0.7.0",

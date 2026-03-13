@@ -13,6 +13,7 @@ const issueSchema = new mongoose.Schema({
     },
     imageUrl: { type: String }, // User's initial report
     resolvedImageUrl: { type: String }, // Maintenance's fix
+    aiPrediction: { type: String }, // AI Object Detection Result
     reporter: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });

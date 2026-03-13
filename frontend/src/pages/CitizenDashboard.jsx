@@ -11,6 +11,8 @@ import {
 import { PieChart, Cell, ResponsiveContainer, Pie } from 'recharts';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as tf from '@tensorflow/tfjs';
+import * as mobilenet from '@tensorflow-models/mobilenet';
 
 const CitizenDashboard = () => {
   const { user } = useAuth();
@@ -23,6 +25,8 @@ const CitizenDashboard = () => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiPrediction, setAiPrediction] = useState('');
 
   useEffect(() => {
     fetchIssues();
@@ -61,10 +65,55 @@ const CitizenDashboard = () => {
     }
   };
 
+  const analyzeImage = async (url) => {
+      setIsAnalyzing(true);
+      setAiPrediction('Initializing AI Model...');
+      try {
+          await tf.ready();
+          setAiPrediction('Analyzing Image...');
+          const model = await mobilenet.load();
+          const img = new Image();
+          img.src = url;
+          img.onload = async () => {
+              const predictions = await model.classify(img);
+              let detectedCategory = '';
+              let dbCategory = '';
+              const keywords = predictions.map(p => p.className.toLowerCase()).join(' ');
+              
+              if (keywords.includes('hole') || keywords.includes('street') || keywords.includes('circle') || keywords.includes('manhole')) {
+                  detectedCategory = 'Pothole Detected';
+                  dbCategory = '1';
+              } else if (keywords.includes('trash') || keywords.includes('ashcan') || keywords.includes('garbage') || keywords.includes('waste')) {
+                  detectedCategory = 'Garbage Pile Detected';
+                  dbCategory = '2';
+              } else if (keywords.includes('light') || keywords.includes('lamp') || keywords.includes('pole')) {
+                  detectedCategory = 'Broken Streetlight Detected';
+                  dbCategory = '3';
+              } else if (keywords.includes('water') || keywords.includes('pipe') || keywords.includes('fountain') || keywords.includes('plumbing')) {
+                  detectedCategory = 'Water Leak/Pipe Detected';
+                  dbCategory = '4';
+              } else {
+                  detectedCategory = `Objects: ${predictions[0].className}`;
+              }
+
+              setAiPrediction(detectedCategory);
+              setFormData(prev => ({ ...prev, category: dbCategory || prev.category }));
+              setIsAnalyzing(false);
+          };
+      } catch (err) {
+          console.error("AI Analysis failed", err);
+          setAiPrediction('AI Analysis Failed');
+          setIsAnalyzing(false);
+      }
+  };
+
   const onDrop = useCallback(acceptedFiles => {
      if (acceptedFiles && acceptedFiles[0]) {
-        setImage(acceptedFiles[0]);
-        setPreviewUrl(URL.createObjectURL(acceptedFiles[0]));
+        const file = acceptedFiles[0];
+        setImage(file);
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+        analyzeImage(url);
      }
   }, []);
   
@@ -79,6 +128,7 @@ const CitizenDashboard = () => {
     const submitData = new FormData();
     Object.keys(formData).forEach(key => submitData.append(key, formData[key]));
     if (image) submitData.append('image', image);
+    if (aiPrediction) submitData.append('aiPrediction', aiPrediction);
 
     try {
       await axios.post('/api/issues', submitData, {
@@ -88,6 +138,7 @@ const CitizenDashboard = () => {
       setFormData({ title: '', description: '', category: '', lat: '', lng: '', address: '' });
       setImage(null);
       setPreviewUrl(null);
+      setAiPrediction('');
       fetchIssues();
     } catch (error) {}
   };
@@ -190,6 +241,17 @@ const CitizenDashboard = () => {
                                <p className="text-lg font-bold text-white mb-2">Drop evidence here</p>
                                <p className="text-slate-500 font-medium text-sm">PNG, JPG or HEIC up to 10MB</p>
                             </>
+                         )}
+                      </div>
+                   </div>
+
+                   <div className="space-y-2 mt-4">
+                      <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 ml-1">AI Smart Detection</label>
+                      <div className="input-field bg-primary/5 border border-primary/20 text-primary-400 font-mono text-sm flex items-center gap-3">
+                         {isAnalyzing ? (
+                             <><div className="w-4 h-4 rounded-full border-2 border-primary/20 border-t-primary animate-spin"></div> {aiPrediction}</>
+                         ) : (
+                             <><Zap size={16}/> {aiPrediction || 'Awaiting image upload for analysis...'}</>
                          )}
                       </div>
                    </div>

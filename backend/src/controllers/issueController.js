@@ -3,7 +3,7 @@ const Category = require('../models/Category');
 
 exports.createIssue = async (req, res) => {
     try {
-        const { title, description, category, priority, lat, lng, address } = req.body;
+        const { title, description, category, priority, lat, lng, address, aiPrediction } = req.body;
         let imageUrl = null;
         if (req.file) {
             imageUrl = `/uploads/${req.file.filename}`;
@@ -30,6 +30,7 @@ exports.createIssue = async (req, res) => {
             priority: priority || issueCategory.defaultPriority,
             location: { lat: parseFloat(lat), lng: parseFloat(lng), address },
             imageUrl,
+            aiPrediction,
             reporter: req.user.id
         });
 

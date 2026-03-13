@@ -46,6 +46,7 @@ app.use('/uploads', express.static('uploads'));
 app.use('/api/auth', authRoutes);
 app.use('/api/issues', issueRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/civic-issues')

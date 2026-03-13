@@ -19,7 +19,7 @@ const CitizenDashboard = () => {
   const [issues, setIssues] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
-    title: '', description: '', category: '', lat: '', lng: '', address: ''
+    title: '', description: '', category: '', priority: 'Medium', lat: '', lng: '', address: ''
   });
   const [image, setImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -30,12 +30,15 @@ const CitizenDashboard = () => {
 
   useEffect(() => {
     fetchIssues();
-    setCategories([
-        { _id: '1', name: 'Pothole' },
-        { _id: '2', name: 'Garbage' },
-        { _id: '3', name: 'Streetlight' },
-        { _id: '4', name: 'Water Pipe' }
-    ]);
+    const fetchCategories = async () => {
+        try {
+            const { data } = await axios.get('/api/categories');
+            setCategories(data);
+        } catch (error) {
+            console.error("Failed to fetch categories", error);
+        }
+    };
+    fetchCategories();
 
     // Setup WebSocket connection
     const socket = io(import.meta.env.VITE_API_BASE_URL || 'https://cityfix-backend.onrender.com');
@@ -97,7 +100,16 @@ const CitizenDashboard = () => {
               }
 
               setAiPrediction(detectedCategory);
-              setFormData(prev => ({ ...prev, category: dbCategory || prev.category }));
+              
+              // Find the corresponding category object from state to get the real _id
+              const matchedCat = categories.find(c => 
+                c.name.toLowerCase().includes(detectedCategory.split(' ')[0].toLowerCase())
+              );
+
+              setFormData(prev => ({ 
+                ...prev, 
+                category: matchedCat ? matchedCat._id : prev.category 
+              }));
               setIsAnalyzing(false);
           };
       } catch (err) {
@@ -135,7 +147,7 @@ const CitizenDashboard = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setShowForm(false);
-      setFormData({ title: '', description: '', category: '', lat: '', lng: '', address: '' });
+      setFormData({ title: '', description: '', category: '', priority: 'Medium', lat: '', lng: '', address: '' });
       setImage(null);
       setPreviewUrl(null);
       setAiPrediction('');
@@ -202,11 +214,15 @@ const CitizenDashboard = () => {
                             </div>
                             <div className="space-y-2">
                                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 ml-1">Priority</label>
-                               <select className="input-field appearance-none" defaultValue="Medium">
-                                  <option value="Low">Standard</option>
-                                  <option value="Medium">Elevated</option>
-                                  <option value="High">Critical</option>
-                               </select>
+                               <select 
+                                  className="input-field appearance-none" 
+                                  value={formData.priority} 
+                                  onChange={e => setFormData({...formData, priority: e.target.value})}
+                                >
+                                   <option value="Low">Standard</option>
+                                   <option value="Medium">Elevated</option>
+                                   <option value="High">Priority</option>
+                                </select>
                             </div>
                          </div>
 
